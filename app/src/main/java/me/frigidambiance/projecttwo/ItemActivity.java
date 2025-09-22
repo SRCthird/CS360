@@ -44,7 +44,7 @@ public class ItemActivity extends AppCompatActivity {
 
             boolean success;
             if (itemId == -1) {
-                success = db.insertItem(name, location);
+                success = db.insertItem(name, location) > 0;
             } else {
                 success = db.updateItem(itemId, name, location);
             }

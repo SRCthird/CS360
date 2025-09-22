@@ -4,16 +4,16 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.SimpleAdapter;
+
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.HashMap;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private InventoryDatabase db;
     private ListView listView;
     private Button addButton;
+    private ItemAdapter adapter; // keep a reference if you want to reuse later
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,27 +39,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadItems() {
-        List<HashMap<String, String>> itemList = db.getAllItems();
+        List<InventoryItem> items = db.getAllItems();
 
-        ItemAdapter adapter = new ItemAdapter(
+        adapter = new ItemAdapter(
                 this,
-                itemList,
+                items,
                 db,
                 this::loadItems
         );
-
         listView.setAdapter(adapter);
 
         listView.setOnItemClickListener((parent, view, position, id) -> {
-            HashMap<String, String> selected = itemList.get(position);
-            int itemId = db.getIdByItem(selected.get("item"));
+            InventoryItem selected = adapter.getItemAt(position);
 
             Intent intent = new Intent(MainActivity.this, ItemActivity.class);
-            intent.putExtra("item_id", itemId);
-            intent.putExtra("item_name", selected.get("item"));
-            intent.putExtra("item_location", selected.get("location"));
+            if (selected.getId() != null) {
+                intent.putExtra("item_id", selected.getId());
+            }
+            intent.putExtra("item_name", selected.getItem());
+            intent.putExtra("item_location", selected.getLocation());
             startActivity(intent);
         });
     }
-
 }
