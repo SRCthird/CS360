@@ -144,14 +144,12 @@ public class InventoryDatabase extends SQLiteOpenHelper {
         return null;
     }
 
-    /** Legacy helper equivalent to your original method. */
     public int getIdByItem(String itemName) {
         InventoryItem item = getItemByName(itemName);
         return item != null && item.getId() != null ? item.getId() : -1;
     }
 
     // --- Mapping helpers ---
-
     private static ContentValues toContentValues(InventoryItem item) {
         ContentValues values = new ContentValues();
         if (item.getId() != null) {

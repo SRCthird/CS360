@@ -20,6 +20,37 @@
         android:background="#6200EE"
         android:textColor="#FFFFFF"/>
 
+    <!-- Controls row: filter + sort -->
+    <LinearLayout
+        android:id="@+id/controlsRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <EditText
+            android:id="@+id/filterInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:autofillHints="@string/filter_by_name_or_location"
+            android:hint="@string/filter_by_name_or_location"
+            android:imeOptions="actionDone"
+            android:inputType="text"
+            android:minHeight="48dp"
+            android:padding="12dp" />
+
+        <Spinner
+            android:id="@+id/sortSpinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minHeight="48dp"
+            android:minWidth="48dp"
+            android:padding="8dp"/>
+
+    </LinearLayout>
+
     <ListView
         android:id="@+id/inventory_list"
         android:layout_width="match_parent"
@@ -47,6 +78,5 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/add" />
-
     </LinearLayout>
 </LinearLayout>

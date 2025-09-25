@@ -2,56 +2,56 @@ package me.frigidambiance.projecttwo;
 
 import android.content.Context;
 import android.content.Intent;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.BaseAdapter;
-import android.widget.ImageButton;
-import android.widget.TextView;
+import android.view.*;
+import android.widget.*;
+import androidx.annotation.Nullable;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
-public class ItemAdapter extends BaseAdapter {
+public class ItemAdapter extends BaseAdapter implements Filterable {
     private final Context context;
-    private final List<InventoryItem> data;
     private final InventoryDatabase db;
     private final Runnable refreshCallback;
 
-    public ItemAdapter(Context context, List<InventoryItem> data,
-                       InventoryDatabase db, Runnable refreshCallback) {
+    // Full data and the currently displayed (filtered/sorted) data
+    private final List<InventoryItem> original;
+    private List<InventoryItem> visible;
+
+    // Current comparator (nullable = no specific sort beyond insertion order)
+    @Nullable private Comparator<InventoryItem> currentComparator;
+
+    public ItemAdapter(Context context,
+                       List<InventoryItem> data,
+                       InventoryDatabase db,
+                       Runnable refreshCallback) {
         this.context = context;
-        this.data = data;
         this.db = db;
         this.refreshCallback = refreshCallback;
+        this.original = new ArrayList<>(data);
+        this.visible = new ArrayList<>(data);
     }
 
-    @Override
-    public int getCount() {
-        return data.size();
+    // Public API to update the whole dataset (e.g., after DB refresh)
+    public void setData(List<InventoryItem> newData) {
+        original.clear();
+        original.addAll(newData);
+        // Re-apply filter and sort
+        getFilter().filter(currentQuery);
     }
 
-    /** BaseAdapter requires Object; add a typed helper below if you prefer. */
-    @Override
-    public Object getItem(int position) {
-        return data.get(position);
-    }
-
-    /** Return stable db id if present; fallback to position. */
-    @Override
-    public long getItemId(int position) {
-        InventoryItem item = data.get(position);
-        return item.getId() != null ? item.getId() : position;
-    }
-
-    public InventoryItem getItemAt(int position) {
-        return data.get(position);
+    @Override public int getCount() { return visible.size(); }
+    @Override public Object getItem(int position) { return visible.get(position); }
+    public InventoryItem getItemAt(int position) { return visible.get(position); }
+    @Override public long getItemId(int position) {
+        InventoryItem it = visible.get(position);
+        return it.getId() != null ? it.getId() : position;
     }
 
     static class ViewHolder {
-        TextView itemText;
-        TextView locationText;
-        ImageButton deleteButton;
-        ImageButton smsButton;
+        TextView itemText, locationText;
+        ImageButton deleteButton, smsButton;
     }
 
     @Override
@@ -70,23 +70,18 @@ public class ItemAdapter extends BaseAdapter {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        final InventoryItem item = data.get(position);
+        final InventoryItem item = visible.get(position);
         holder.itemText.setText(item.getItem());
         holder.locationText.setText(item.getLocation());
 
-        // Edit on row click
         convertView.setOnClickListener(v -> {
             Intent intent = new Intent(context, ItemActivity.class);
-            // Prefer passing the id if available; your ItemActivity can fetch latest from DB
-            if (item.getId() != null) {
-                intent.putExtra("item_id", item.getId());
-            }
+            if (item.getId() != null) intent.putExtra("item_id", item.getId());
             intent.putExtra("item_name", item.getItem());
             intent.putExtra("item_location", item.getLocation());
             context.startActivity(intent);
         });
 
-        // SMS
         holder.smsButton.setOnClickListener(v -> {
             Intent intent = new Intent(context, SmsActivity.class);
             intent.putExtra("item_name", item.getItem());
@@ -94,21 +89,76 @@ public class ItemAdapter extends BaseAdapter {
             context.startActivity(intent);
         });
 
-        // Delete
         holder.deleteButton.setOnClickListener(v -> {
             Integer id = item.getId();
-            if (id != null) {
-                db.deleteItem(id);
-            } else {
-                // Fallback if this item wasn't loaded with an id (shouldn't happen with your getAllItems)
+            if (id != null) db.deleteItem(id);
+            else {
                 InventoryItem fromDb = db.getItemByName(item.getItem());
-                if (fromDb != null && fromDb.getId() != null) {
-                    db.deleteItem(fromDb.getId());
-                }
+                if (fromDb != null && fromDb.getId() != null) db.deleteItem(fromDb.getId());
             }
             refreshCallback.run();
         });
 
         return convertView;
     }
+
+    // ----- Filtering -----
+    private String currentQuery = "";
+
+    @Override
+    public Filter getFilter() {
+        return new Filter() {
+            @Override protected FilterResults performFiltering(CharSequence constraint) {
+                final String q = constraint == null ? "" : constraint.toString().trim();
+                List<InventoryItem> base = new ArrayList<>();
+                if (q.isEmpty()) {
+                    base.addAll(original);
+                } else {
+                    final String qLower = q.toLowerCase();
+                    for (InventoryItem it : original) {
+                        if (it.getItem().toLowerCase().contains(qLower) || it.getLocation().toLowerCase().contains(qLower)) {
+                            base.add(it);
+                        }
+                    }
+                }
+                // Apply current sort if any
+                if (currentComparator != null) {
+                    base.sort(currentComparator);
+                }
+                FilterResults results = new FilterResults();
+                results.values = base;
+                results.count = base.size();
+                return results;
+            }
+
+            @SuppressWarnings("unchecked")
+            @Override protected void publishResults(CharSequence constraint, FilterResults results) {
+                currentQuery = constraint == null ? "" : constraint.toString();
+                visible = results.values == null ? new ArrayList<>() : (List<InventoryItem>) results.values;
+                notifyDataSetChanged();
+            }
+        };
+    }
+
+    // ----- Sorting -----
+    public void setSort(@Nullable Comparator<InventoryItem> comparator) {
+        currentComparator = comparator;
+        // Re-apply filter (which also re-applies sort)
+        getFilter().filter(currentQuery);
+    }
+
+    // Common comparators
+    public static Comparator<InventoryItem> byNameAsc() {
+        return (a, b) -> safe(a.getItem()).compareToIgnoreCase(safe(b.getItem()));
+    }
+    public static Comparator<InventoryItem> byNameDesc() {
+        return (a, b) -> safe(b.getItem()).compareToIgnoreCase(safe(a.getItem()));
+    }
+    public static Comparator<InventoryItem> byLocationAsc() {
+        return (a, b) -> safe(a.getLocation()).compareToIgnoreCase(safe(b.getLocation()));
+    }
+    public static Comparator<InventoryItem> byLocationDesc() {
+        return (a, b) -> safe(b.getLocation()).compareToIgnoreCase(safe(a.getLocation()));
+    }
+    private static String safe(String s) { return s == null ? "" : s; }
 }
