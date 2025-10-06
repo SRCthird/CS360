@@ -16,4 +16,6 @@
     <string name="permission_denied">Permission Denied</string>
     <string name="send_test_sms">Send Test SMS</string>
     <string name="filter_by_name_or_location">Filter by name or location</string>
+    <string name="show_deleted">Show deleted</string>
+    <string name="sync">Sync</string>
 </resources>

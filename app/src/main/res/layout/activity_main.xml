@@ -28,27 +28,23 @@
         android:orientation="horizontal"
         android:padding="8dp">
 
-        <EditText
-            android:id="@+id/filterInput"
+        <CheckBox
+            android:id="@+id/checkShowDeleted"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:autofillHints="@string/filter_by_name_or_location"
-            android:hint="@string/filter_by_name_or_location"
-            android:imeOptions="actionDone"
-            android:inputType="text"
+            android:text="@string/show_deleted"
             android:minHeight="48dp"
-            android:padding="12dp" />
+            android:padding="8dp" />
 
-        <Spinner
-            android:id="@+id/sortSpinner"
+        <Button
+            android:id="@+id/buttonSyncNow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:text="@string/sync"
             android:minHeight="48dp"
-            android:minWidth="48dp"
-            android:padding="8dp"/>
-
+            android:minWidth="64dp"
+            android:padding="8dp" />
     </LinearLayout>
 
     <ListView

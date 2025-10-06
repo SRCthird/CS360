@@ -57,7 +57,6 @@ public class ItemAdapter extends BaseAdapter implements Filterable {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         final ViewHolder holder;
-
         if (convertView == null) {
             convertView = LayoutInflater.from(context).inflate(R.layout.inventory_item, parent, false);
             holder = new ViewHolder();
@@ -70,9 +69,19 @@ public class ItemAdapter extends BaseAdapter implements Filterable {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        final InventoryItem item = visible.get(position);
+        final InventoryItem item = getItemAt(position);
         holder.itemText.setText(item.getItem());
         holder.locationText.setText(item.getLocation());
+
+        boolean isDeleted = item.getDeletedAt() != null;
+        float alpha = isDeleted ? 0.5f : 1.0f;
+        convertView.setAlpha(alpha);
+        int flags = holder.itemText.getPaintFlags();
+        if (isDeleted) {
+            holder.itemText.setPaintFlags(flags | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
+        } else {
+            holder.itemText.setPaintFlags(flags & ~android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
+        }
 
         convertView.setOnClickListener(v -> {
             Intent intent = new Intent(context, ItemActivity.class);
@@ -91,10 +100,8 @@ public class ItemAdapter extends BaseAdapter implements Filterable {
 
         holder.deleteButton.setOnClickListener(v -> {
             Integer id = item.getId();
-            if (id != null) db.deleteItem(id);
-            else {
-                InventoryItem fromDb = db.getItemByName(item.getItem());
-                if (fromDb != null && fromDb.getId() != null) db.deleteItem(fromDb.getId());
+            if (id != null) {
+                db.softDeleteItem(id);
             }
             refreshCallback.run();
         });

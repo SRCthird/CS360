@@ -16,6 +16,9 @@ public class MainActivity extends AppCompatActivity {
     private EditText filterInput;
     private Spinner sortSpinner;
     private ItemAdapter adapter;
+    private Button addButton, syncButton;
+    private CheckBox showDeleted;
+    private boolean includeDeleted = false;
 
     private static final List<String> SORT_OPTIONS = Arrays.asList(
             "Item A→Z",
@@ -30,35 +33,40 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         listView = findViewById(R.id.inventory_list);
-        Button addButton = findViewById(R.id.buttonAddItem);
-        filterInput = findViewById(R.id.filterInput);
-        sortSpinner = findViewById(R.id.sortSpinner);
-        db = new InventoryDatabase(this);
+        addButton = findViewById(R.id.buttonAddItem);
+        syncButton = findViewById(R.id.buttonSyncNow);
+        showDeleted = findViewById(R.id.checkShowDeleted);
 
-        // Sort options
-        ArrayAdapter<String> sortAdapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_item, SORT_OPTIONS);
-        sortAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        sortSpinner.setAdapter(sortAdapter);
+        db = new InventoryDatabase(this);
 
         addButton.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, ItemActivity.class);
             startActivity(intent);
         });
 
+        syncButton.setOnClickListener(v -> {
+            me.frigidambiance.projecttwo.sync.InventorySyncWorker.enqueueOneTime(this);
+            // Optional: toast so user gets feedback
+            Toast.makeText(this, "Sync started", Toast.LENGTH_SHORT).show();
+        });
+
+        showDeleted.setOnCheckedChangeListener((btn, checked) -> {
+            includeDeleted = checked;
+            loadItems(); // reload with the new filter
+        });
+
         loadItems();
-        setupFiltering();
-        setupSorting();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        me.frigidambiance.projecttwo.sync.InventorySyncWorker.enqueueOneTime(this);
         loadItems();
     }
 
     private void loadItems() {
-        List<InventoryItem> items = db.getAllItems();
+        List<InventoryItem> items = db.getAllItems(includeDeleted);
 
         if (adapter == null) {
             adapter = new ItemAdapter(

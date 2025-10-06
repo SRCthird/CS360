@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace 'me.frigidambiance.projecttwo'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "me.frigidambiance.projecttwo"
@@ -29,10 +29,16 @@ android {
 }
 
 dependencies {
-
     implementation libs.appcompat
     implementation libs.material
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+}
+
+dependencies {
+    implementation libs.retrofit.v2110
+    implementation libs.converter.moshi
+    implementation libs.logging.interceptor
+    implementation libs.work.runtime
 }
